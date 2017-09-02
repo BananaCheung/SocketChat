@@ -133,11 +133,7 @@ namespace SocketClient
             else
                 e.Cancel = true;
         }
-
-        private void FormClient_Load(object sender, EventArgs e)
-        {
-        }
-
+        
         private static string[] GetIpAddress()
         {
             string hostName = Dns.GetHostName(); //本机名
