@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -20,13 +22,16 @@ namespace SocketClient
             InitializeComponent();
 
             CheckForIllegalCrossThreadCalls = false;
+
+            cbIp.Items.AddRange(GetIpAddress());
+            cbIp.SelectedIndex = 0;
         }
 
         private void btnBeginListen_Click(object sender, EventArgs e)
         {
             btnBeginListen.Enabled = false;
             clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPAddress ipAddress = IPAddress.Parse(tbIP.Text.Trim());
+            IPAddress ipAddress = IPAddress.Parse(cbIp.Text.Trim());
             IPEndPoint endPoint = new IPEndPoint(ipAddress, int.Parse(tbPort.Text.Trim()));
 
             try
@@ -51,7 +56,7 @@ namespace SocketClient
             while (true)
                 try
                 {
-                    byte[] recMsgBytes = new byte[1024 * 1024];
+                    byte[] recMsgBytes = new byte[1024*1024];
                     int length = clientSocket.Receive(recMsgBytes);
                     string recMsg = Encoding.UTF8.GetString(recMsgBytes, 0, length);
 
@@ -113,8 +118,11 @@ namespace SocketClient
             }
             lbMsg.Items.Insert(lbMsg.Items.Count, msg);
             if (lbMsg.Items.Count > 100)
+            {
                 lbMsg.Items.RemoveAt(0);
-            lbMsg.TopIndex = lbMsg.Items.Count - lbMsg.Height / lbMsg.ItemHeight;
+            }
+            lbMsg.SelectedIndex = lbMsg.Items.Count - 1;
+            lbMsg.TopIndex = lbMsg.Items.Count - 1;
         }
 
         private void FormClient_FormClosing(object sender, FormClosingEventArgs e)
@@ -124,6 +132,29 @@ namespace SocketClient
                 Dispose();
             else
                 e.Cancel = true;
+        }
+
+        private void FormClient_Load(object sender, EventArgs e)
+        {
+        }
+
+        private static string[] GetIpAddress()
+        {
+            string hostName = Dns.GetHostName(); //本机名
+            //System.Net.IPAddress[] addressList = Dns.GetHostByName(hostName).AddressList;//会警告GetHostByName()已过期，我运行时且只返回了一个IPv4的地址   
+            IPAddress[] addressList = Dns.GetHostAddresses(hostName); //会返回所有地址，包括IPv4和IPv6   
+            List<string> ipList = new List<string>();
+            Regex regex = new Regex(@"(192|10)\.\d+\.\d+\.\d+");
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            foreach (IPAddress ip in addressList)
+            {
+                bool isIPv4 = regex.IsMatch(ip.ToString());
+                if (isIPv4)
+                {
+                    ipList.Add(ip.ToString());
+                }
+            }
+            return ipList.ToArray();
         }
 
         private enum MessageType
